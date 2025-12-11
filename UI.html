@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChatPDF - Demo</title>
+    <style>
+      :root {
+        --bg: #f9fafb;
+        --panel: #ffffff;
+        --muted: #6b7280;
+        --accent: #4f46e5;
+        --accent-light: #818cf8;
+        --glass: rgba(255, 255, 255, 0.7);
+        --bubble-user: #4f46e5;
+        --bubble-assistant: #f3f4f6;
+        --border: #e5e7eb;
+        --shadow: rgba(0, 0, 0, 0.05);
+        --text: #111827;
+        --text-light: #374151;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: "Inter", ui-sans-serif, system-ui, -apple-system,
+          "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%);
+        color: var(--text);
+        line-height: 1.5;
+      }
+
+      .app {
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 260px 1fr 380px;
+        gap: 20px;
+        padding: 20px;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      /* LEFT - chat list */
+      .sidebar {
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        border: 1px solid var(--border);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .brand .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 2px 10px rgba(79, 70, 229, 0.2);
+      }
+
+      .brand-text h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .brand-text .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+
+      .new-chat {
+        background: var(--accent);
+        border: none;
+        padding: 12px 16px;
+        border-radius: 12px;
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(79, 70, 229, 0.2);
+      }
+
+      .new-chat:hover {
+        background: #4338ca;
+        transform: translateY(-1px);
+      }
+
+      .chats {
+        flex: 1;
+        overflow: auto;
+        padding-right: 8px;
+      }
+
+      .chats-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+
+      .chat-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 6px;
+      }
+
+      .chat-item:hover {
+        background: #f9fafb;
+      }
+
+      .chat-item.active {
+        background: #f1f5f9;
+        border-left: 4px solid var(--accent);
+      }
+
+      .chat-icon {
+        width: 12px;
+        height: 12px;
+        background: var(--accent);
+        border-radius: 50%;
+      }
+
+      .chat-name {
+        font-size: 14px;
+        color: var(--text-light);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .sidebar-footer {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        flex: 1;
+      }
+
+      .btn-ghost:hover {
+        background: #f9fafb;
+        color: var(--text-light);
+      }
+
+      /* MAIN - chat area */
+      .main {
+        background: var(--panel);
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 4px 20px var(--shadow);
+        border: 1px solid var(--border);
+      }
+
+      .main .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border);
+        background: #fafafa;
+      }
+
+      .chat-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .chat-header .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 4px;
+      }
+
+      .chat-status {
+        background: #f0f9ff;
+        color: #0369a1;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .main .messages {
+        flex: 1;
+        padding: 24px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        background: #fcfcfc;
+      }
+
+      .msg-row {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .msg {
+        max-width: 75%;
+        padding: 16px 20px;
+        border-radius: 18px;
+        font-size: 15px;
+        line-height: 1.5;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      .user {
+        margin-left: auto;
+        background: linear-gradient(135deg, var(--bubble-user), #6366f1);
+        color: white;
+        border-bottom-right-radius: 6px;
+      }
+
+      .assistant {
+        background: var(--bubble-assistant);
+        color: var(--text);
+        border-bottom-left-radius: 6px;
+        border: 1px solid #e5e7eb;
+      }
+
+      .input-area {
+        display: flex;
+        gap: 12px;
+        padding: 20px;
+        border-top: 1px solid var(--border);
+        align-items: flex-end;
+        background: var(--panel);
+      }
+
+      .input-area textarea {
+        flex: 1;
+        min-height: 52px;
+        max-height: 150px;
+        padding: 14px 18px;
+        border-radius: 12px;
+        background: #f9fafb;
+        border: 1px solid var(--border);
+        color: var(--text);
+        resize: none;
+        font-family: inherit;
+        font-size: 15px;
+        transition: all 0.2s ease;
+      }
+
+      .input-area textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+
+      .input-area textarea::placeholder {
+        color: #9ca3af;
+      }
+
+      .input-area button {
+        padding: 14px 20px;
+        border-radius: 12px;
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 15px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 52px;
+        min-width: 52px;
+      }
+
+      .input-area button:hover {
+        background: #4338ca;
+        transform: translateY(-1px);
+      }
+
+      .input-area button:active {
+        transform: translateY(0);
+      }
+
+      /* RIGHT - PDF preview */
+      .preview {
+        background: var(--panel);
+        padding: 20px;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px var(--shadow);
+        border: 1px solid var(--border);
+      }
+
+      .preview-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+
+      .preview-subtitle {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .file-drop {
+        border: 2px dashed #d1d5db;
+        padding: 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        transition: all 0.2s ease;
+        background: #fafafa;
+      }
+
+      .file-drop:hover {
+        border-color: var(--accent);
+        background: #f8fafc;
+      }
+
+      .file-drop input {
+        display: none;
+      }
+
+      .file-info {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .btn-file {
+        background: white;
+        border: 1px solid var(--border);
+        padding: 10px 16px;
+        border-radius: 10px;
+        color: var(--text);
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .btn-file:hover {
+        background: #f9fafb;
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .preview-iframe {
+        flex: 1;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        min-height: 320px;
+      }
+
+      .preview-iframe iframe,
+      .preview-iframe object {
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      .preview-footer {
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .pdf-info {
+        font-size: 14px;
+        color: var(--text-light);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .preview-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn-icon {
+        background: white;
+        border: 1px solid var(--border);
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn-icon:hover:not(:disabled) {
+        background: #f9fafb;
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .btn-icon:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* small utilities */
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      /* responsive */
+      @media (max-width: 1200px) {
+        .app {
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto 1fr;
+          gap: 16px;
+        }
+
+        .sidebar {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
+        .main {
+          grid-column: 1 / span 2;
+          grid-row: 2;
+        }
+
+        .preview {
+          grid-column: 2;
+          grid-row: 1;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto 1fr;
+          padding: 12px;
+        }
+
+        .sidebar {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
+        .preview {
+          grid-column: 1;
+          grid-row: 2;
+        }
+
+        .main {
+          grid-column: 1;
+          grid-row: 3;
+          min-height: 500px;
+        }
+
+        .msg {
+          max-width: 85%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">PDF</div>
+          <div class="brand-text">
+            <h1>ChatPDF</h1>
+            <div class="subtitle">Demo interactiva</div>
+          </div>
+        </div>
+
+        <button class="new-chat" id="newChat">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style="margin-right: 4px"
+          >
+            <path
+              d="M12 5V19M5 12H19"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+          Nuevo chat
+        </button>
+
+        <div class="chats">
+          <div class="chats-title">Conversaciones recientes</div>
+          <div class="chat-item active" data-id="1">
+            <div class="chat-icon"></div>
+            <div class="chat-name">Chat con doc1.pdf</div>
+          </div>
+          <div class="chat-item" data-id="2">
+            <div class="chat-icon"></div>
+            <div class="chat-name">Informe financiero</div>
+          </div>
+          <div class="chat-item" data-id="3">
+            <div class="chat-icon"></div>
+            <div class="chat-name">Preguntas sobre contrato</div>
+          </div>
+        </div>
+
+        <div class="sidebar-footer">
+          <button class="btn-ghost" id="openExample">Abrir ejemplo</button>
+          <button class="btn-ghost" id="clearChats">Limpiar historial</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="header">
+          <div class="chat-header">
+            <h2 id="chatTitle">Chat con PDF</h2>
+            <div class="subtitle" id="attachedFile">Sin archivo adjunto</div>
+          </div>
+          <div class="chat-status">
+            <div class="status-indicator">
+              <div class="status-dot"></div>
+              <span>Conectado</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="messages" id="messages">
+          <div class="msg-row">
+            <div class="msg assistant">
+              ¡Hola! 👋 Sube un PDF en la barra derecha para previsualizarlo y
+              hazme preguntas sobre su contenido. Puedo ayudarte a resumir,
+              buscar información específica o explicar conceptos.
+            </div>
+          </div>
+
+          <div class="msg-row">
+            <div class="msg assistant">
+              Por ejemplo, podrías preguntarme:
+              <ul style="margin: 8px 0; padding-left: 20px">
+                <li>¿Cuál es el resumen de este documento?</li>
+                <li>¿Qué información contiene la página 3?</li>
+                <li>Explica el concepto principal del PDF</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <textarea
+            id="inputText"
+            placeholder="Escribe tu pregunta sobre el PDF..."
+            rows="1"
+          ></textarea>
+          <button id="sendBtn">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </main>
+
+      <aside class="preview">
+        <div>
+          <div class="preview-title">Previsualización PDF</div>
+          <div class="preview-subtitle">
+            Carga un archivo PDF para verlo aquí
+          </div>
+        </div>
+
+        <div class="file-drop">
+          <div class="file-info">
+            <div style="font-weight: 600; margin-bottom: 4px">
+              Arrastra y suelta
+            </div>
+            <div class="muted">o haz clic para seleccionar un archivo</div>
+          </div>
+          <div>
+            <label class="btn-file" for="fileInput">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style="margin-right: 6px; vertical-align: middle"
+              >
+                <path
+                  d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M17 8L12 3L7 8"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 3V15"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Seleccionar PDF
+            </label>
+            <input type="file" id="fileInput" accept="application/pdf" />
+          </div>
+        </div>
+
+        <div class="preview-iframe" id="pdfContainer">
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100%;
+              color: var(--muted);
+              padding: 30px;
+              text-align: center;
+            "
+          >
+            <svg
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style="margin-bottom: 16px; opacity: 0.5"
+            >
+              <path
+                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M14 2V8H20"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 13H8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 17H8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M10 9H9H8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <div style="font-weight: 600; margin-bottom: 8px">
+              Sin documento cargado
+            </div>
+            <div style="font-size: 14px">
+              Selecciona un archivo PDF para previsualizarlo aquí
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-footer">
+          <div class="pdf-info" id="pdfMeta">Ningún PDF cargado</div>
+          <div class="preview-actions">
+            <button
+              class="btn-icon"
+              id="downloadPdf"
+              disabled
+              title="Descargar PDF"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M7 10L12 15L17 10"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 15V3"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <button
+              class="btn-icon"
+              id="removePdf"
+              disabled
+              title="Eliminar PDF"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 6L6 18M6 6L18 18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      // Element refs
+      const fileInput = document.getElementById("fileInput");
+      const pdfContainer = document.getElementById("pdfContainer");
+      const pdfMeta = document.getElementById("pdfMeta");
+      const attachedFile = document.getElementById("attachedFile");
+      const downloadPdf = document.getElementById("downloadPdf");
+      const removePdf = document.getElementById("removePdf");
+
+      const messages = document.getElementById("messages");
+      const inputText = document.getElementById("inputText");
+      const sendBtn = document.getElementById("sendBtn");
+      const chatsList = document.querySelector(".chats");
+      const chatTitle = document.getElementById("chatTitle");
+
+      let currentPdf = null;
+
+      // Helper: push message
+      function pushMessage(text, who = "assistant") {
+        const row = document.createElement("div");
+        row.className = "msg-row";
+        const m = document.createElement("div");
+        m.className = "msg " + (who === "user" ? "user" : "assistant");
+        m.innerHTML = text.replace(/\n/g, "<br>");
+        row.appendChild(m);
+        messages.appendChild(row);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      // Fake assistant that references file name
+      function assistantReply(userText) {
+        pushMessage("<em>Pensando...</em>");
+        setTimeout(() => {
+          // Remove last thinking bubble
+          const last = [...messages.querySelectorAll(".assistant")].pop();
+          if (last && last.innerText.includes("Pensando")) last.remove();
+
+          let reply = "";
+          if (currentPdf) {
+            const questions = [
+              "¿Quieres que resuma las secciones principales?",
+              "¿Necesitas que busque información específica en alguna página?",
+              "¿Te interesa que extraiga los puntos clave del documento?",
+            ];
+            const randomQuestion =
+              questions[Math.floor(Math.random() * questions.length)];
+
+            reply = `He analizado <strong>${escapeHtml(
+              currentPdf.name
+            )}</strong>. Tu pregunta: "${escapeHtml(userText)}".\n\n`;
+            reply += `En una implementación real, buscaría en el PDF y te daría una respuesta precisa basada en su contenido. ${randomQuestion}`;
+          } else {
+            reply = `Actualmente no hay ningún PDF cargado. Tu pregunta: "${escapeHtml(
+              userText
+            )}".\n\n`;
+            reply += `Para que pueda responder basándome en un documento, primero carga un PDF usando el panel derecho.`;
+          }
+          pushMessage(reply, "assistant");
+        }, 600 + Math.random() * 500);
+      }
+
+      // Send message
+      sendBtn.addEventListener("click", () => {
+        const text = inputText.value.trim();
+        if (!text) return;
+        pushMessage(escapeHtml(text), "user");
+        inputText.value = "";
+        assistantReply(text);
+      });
+
+      inputText.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendBtn.click();
+        }
+
+        // Auto-resize textarea
+        setTimeout(() => {
+          inputText.style.height = "auto";
+          inputText.style.height = Math.min(inputText.scrollHeight, 150) + "px";
+        }, 0);
+      });
+
+      // File handling
+      fileInput.addEventListener("change", (ev) => {
+        const file = ev.target.files[0];
+        if (!file) return;
+        if (file.type !== "application/pdf")
+          return alert("Por favor, selecciona un archivo PDF válido.");
+        loadPdf(file);
+      });
+
+      // Drag and drop for PDF
+      const fileDrop = document.querySelector(".file-drop");
+      fileDrop.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        fileDrop.style.borderColor = "var(--accent)";
+        fileDrop.style.background = "#f0f9ff";
+      });
+
+      fileDrop.addEventListener("dragleave", () => {
+        fileDrop.style.borderColor = "#d1d5db";
+        fileDrop.style.background = "#fafafa";
+      });
+
+      fileDrop.addEventListener("drop", (e) => {
+        e.preventDefault();
+        fileDrop.style.borderColor = "#d1d5db";
+        fileDrop.style.background = "#fafafa";
+
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === "application/pdf") {
+          loadPdf(file);
+        } else {
+          alert("Por favor, suelta solo archivos PDF.");
+        }
+      });
+
+      function loadPdf(file) {
+        if (currentPdf && currentPdf.url) URL.revokeObjectURL(currentPdf.url);
+        const url = URL.createObjectURL(file);
+        currentPdf = { file, url, name: file.name, size: file.size };
+
+        // Show in iframe/object
+        pdfContainer.innerHTML = "";
+        const obj = document.createElement("object");
+        obj.type = "application/pdf";
+        obj.data = url;
+        obj.style.width = "100%";
+        obj.style.height = "100%";
+        pdfContainer.appendChild(obj);
+
+        // Update UI
+        pdfMeta.innerText = `${file.name} · ${(file.size / 1024).toFixed(
+          1
+        )} KB`;
+        attachedFile.innerText = file.name;
+        chatTitle.innerText = `Chat: ${file.name.substring(0, 20)}${
+          file.name.length > 20 ? "..." : ""
+        }`;
+
+        downloadPdf.disabled = false;
+        removePdf.disabled = false;
+
+        downloadPdf.onclick = () => {
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = file.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        };
+
+        removePdf.onclick = () => {
+          removeCurrentPdf();
+        };
+
+        // Add a note in chat
+        pushMessage(
+          `✅ PDF cargado: <strong>${escapeHtml(file.name)}</strong> (${(
+            file.size / 1024
+          ).toFixed(
+            1
+          )} KB).\nAhora puedes hacerme preguntas sobre su contenido.`,
+          "assistant"
+        );
+      }
+
+      function removeCurrentPdf() {
+        if (!currentPdf) return;
+        try {
+          URL.revokeObjectURL(currentPdf.url);
+        } catch (e) {}
+        currentPdf = null;
+
+        pdfContainer.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); padding: 30px; text-align: center;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 16px; opacity: 0.5;">
+              <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div style="font-weight: 600; margin-bottom: 8px;">Sin documento cargado</div>
+            <div style="font-size: 14px;">Selecciona un archivo PDF para previsualizarlo aquí</div>
+          </div>
+        `;
+
+        pdfMeta.innerText = "Ningún PDF cargado";
+        attachedFile.innerText = "Sin archivo adjunto";
+        chatTitle.innerText = "Chat con PDF";
+        downloadPdf.disabled = true;
+        removePdf.disabled = true;
+
+        pushMessage(
+          "📄 PDF eliminado. Puedes cargar otro documento cuando quieras.",
+          "assistant"
+        );
+        fileInput.value = "";
+      }
+
+      // Small utilities
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // Example file: create a tiny pdf blob (just for demo)
+      document.getElementById("openExample").addEventListener("click", () => {
+        const samplePdfBase64 =
+          "JVBERi0xLjQKJeLjz9MKNCAwIG9iago8PC9UeXBlL1BhZ2UvUGFyZW50IDMgMCBSL1Jlc291cmNlcyA8PC9Gb250IDw8L0YxIDUgMCBSPj4+Pi9NZWRpYUJveFswIDAgNjEyIDc5Ml0vQ29udGVudHMgNiAwIFI+PgplbmRvYmoKNiAwIG9iago8PC9MZW5ndGggNDY+PgpzdHJlYW0KSGVsbG8sIHBhZ2UhCgpzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZS9Gb250L1N1YnR5cGUvVHlwZTEvTmFtZS9GMS9CYXNlRm9udC9IZWx2ZXRpY2EvQ29sb3JTcGFjZS9EZXZpY2VDb2xvcj4+CmVuZG9iagozIDAgb2JqCjw8L1R5cGUvUGFnZXMvS2lkc1sgNCAwIFJdL0NvdW50IDE+PgplbmRvYmoKc3RhcnR4cmVmCjEwNgolJUVPRgo=";
+        const bytes = atob(samplePdfBase64);
+        const buf = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) buf[i] = bytes.charCodeAt(i);
+        const blob = new Blob([buf], { type: "application/pdf" });
+        const file = new File([blob], "documento-ejemplo.pdf", {
+          type: "application/pdf",
+        });
+        loadPdf(file);
+      });
+
+      // New chat
+      document.getElementById("newChat").addEventListener("click", () => {
+        messages.innerHTML = "";
+        pushMessage(
+          "💬 ¡Nuevo chat iniciado! Sube un PDF para comenzar a hacer preguntas sobre él.",
+          "assistant"
+        );
+        chatTitle.innerText = "Nuevo chat";
+
+        // Reset chat selection
+        document.querySelectorAll(".chat-item").forEach((item) => {
+          item.classList.remove("active");
+        });
+      });
+
+      // Clear chats
+      document.getElementById("clearChats").addEventListener("click", () => {
+        if (
+          confirm(
+            "¿Estás seguro de que quieres limpiar el historial de conversaciones?"
+          )
+        ) {
+          chatsList
+            .querySelectorAll(".chat-item:not(.active)")
+            .forEach((item) => {
+              item.remove();
+            });
+        }
+      });
+
+      // Chat selection
+      document.querySelectorAll(".chat-item").forEach((item) => {
+        item.addEventListener("click", function () {
+          document.querySelectorAll(".chat-item").forEach((i) => {
+            i.classList.remove("active");
+          });
+          this.classList.add("active");
+          chatTitle.innerText = this.querySelector(".chat-name").textContent;
+        });
+      });
+
+      // Initial message
+      pushMessage(
+        "💡 <strong>Sugerencia:</strong> Prueba a cargar el PDF de ejemplo usando el botón 'Abrir ejemplo' en la barra izquierda.",
+        "assistant"
+      );
+    </script>
+  </body>
+</html>
